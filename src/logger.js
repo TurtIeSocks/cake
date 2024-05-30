@@ -21,9 +21,9 @@ const COLORS = /** @type {const} */ ({
   error: chalk.red,
 })
 
-log.setLevel(config.get('logging.level'))
+log.setLevel(config.get('logLevel'))
 
-const originalFactory  = log.methodFactory
+const originalFactory = log.methodFactory
 
 /** @type {typeof log['methodFactory']} */
 log.methodFactory = (methodName, logLevel, loggerName) => {

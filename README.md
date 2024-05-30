@@ -1,6 +1,8 @@
 # cake
 
-A very simple Cloudflare subdomain generator. Use responsibly, CloudFlare will put you in timeout if you abuse this too much. This uses the `random-words` package to generate subdomains that you use everyday words. It will also generate a yml config file saved to the `data` folder that can be used with other apps.
+A very simple Cloudflare subdomain generator. Use responsibly, CloudFlare will put you in timeout if you abuse this too much. You can make 1200 API calls per 5 minutes, this app will attempt to manually wait if you make too many.
+
+This uses the `random-words` package to generate subdomains that you use everyday words. It will also generate a yml config file saved to the `data` folder that can be used with other apps.
 
 ## Requirements
 
@@ -23,22 +25,42 @@ yarn start
 
 ## Config
 
-### `cloudflare.token`
+### `apiToken`
 
 Your Cloudflare API Token. Visit [here](https://dash.cloudflare.com/profile/api-tokens) to generate one. It must have the ability to edit Zone.DNS for all zones.
 
-### `dns.ip`
+### `dnsIpv4Address`
 
 The IP address that you want your subdomains to point to.
 
-### `dns.count`
+### `subdomainCount`
 
 The number of subdomains to generate.
 
-### `dns.clearOld`
+### `clearOldDns`
 
-Whether to clear old subdomains before generating new ones.
+Whether to clear old subdomains before generating new ones. (Recommended, but only if the domains are not being used for other purposes)
 
 ### `domains`
 
 An array of domains to generate subdomains for.
+
+### `logLevel`
+
+The log level to use. Options are `error`, `warn`, `info`, `debug`, and `trace`.
+
+## "Extra" Functionalities
+
+### Clearing Existing Subdomains
+
+- `clearOldDns` = `true`
+- `subDomainCount` = `0`
+
+This will only clear all subdomains for each of the domains in the `domains` array.
+
+### Only Generating the YML File
+
+- `clearOldDns` = `false`
+- `subDomainCount` = `0`
+
+This will only generate a yml config file for the existing subdomains.

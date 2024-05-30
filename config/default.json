@@ -1,14 +1,8 @@
 {
-  "cloudflare": {
-    "token": ""
-  },
-  "dns": {
-    "ip": "",
-    "count": 1,
-    "clearOld": false
-  },
-  "logging": {
-    "level": "info"
-  },
-  "domains": []
+  "apiToken": "",
+  "dnsIpv4Address": "",
+  "clearOldDns": false,
+  "subdomainCount": 100,
+  "domains": [],
+  "logLevel": "info"
 }

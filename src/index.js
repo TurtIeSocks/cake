@@ -8,56 +8,44 @@ import {
   clearDnsRecords,
   getDnsRecords,
   getDomains,
+  getNextPriority,
   mxTemplate,
+  saveApiCallHistory,
+  loadApiCallHistory,
   uploadNewDnsRecords,
 } from './cf.js'
-import { generateConfigFile, getUniqueSubdomains } from './util.js'
+import { getUniqueSubdomains, sleep } from './util.js'
+import { generateConfigFile } from './writers.js'
 
+await loadApiCallHistory()
 const zones = await getDomains()
 
-for (const domain of config.get('domains')) {
-  log.info(`[${domain}] starting`)
-  const zone = zones.find((zone) => zone.name === domain)
-  if (!zone) {
-    log.warn(`[${domain}] zone not found`)
-    continue
-  }
-  log.info(`[${domain}] found`)
+for (let i = 0; i < zones.length; i++) {
+  const zone = zones[i]
+  log.info(`[${zone.name}] starting`)
+
   const dns = await getDnsRecords(zone)
-  if (config.get('dns.clearOld')) {
+  if (config.get('clearOldDns')) {
     await clearDnsRecords(zone, dns)
   }
+
+  const subDomains = getUniqueSubdomains(config.get('clearOldDns') ? [] : dns)
+  log.info(`[${zone.name}] generated ${subDomains.length} subdomains`)
+
   const cfDnsRecords = []
-
-  const sub = getUniqueSubdomains(config.get('dns.clearOld') ? [] : dns)
-  log.info(`[${domain}] generated ${sub.length} subdomains`)
-
   cfDnsRecords.push(';; A Records')
-  for (let i = 0; i < sub.length; i++) {
-    cfDnsRecords.push(aTemplate(sub[i], domain))
+  for (let i = 0; i < subDomains.length; i++) {
+    cfDnsRecords.push(aTemplate(subDomains[i], zone.name))
   }
   cfDnsRecords.push('\n')
 
   cfDnsRecords.push(';; MX Records')
-  const currentPriorities = new Set(
-    dns
-      .map((record) => (record.type === 'MX' ? record.priority : -1))
-      .filter((record) => record !== -1)
-  )
-  const getNextPriority = () => {
-    let nextPriority = 1
-    while (currentPriorities.has(nextPriority)) {
-      nextPriority++
-    }
-    currentPriorities.add(nextPriority)
-    return nextPriority
-  }
-  for (let i = 0; i < sub.length; i++) {
+  for (let i = 0; i < subDomains.length; i++) {
     cfDnsRecords.push(
       mxTemplate(
-        sub[i],
-        domain,
-        config.get('dns.clearOld') ? i : getNextPriority()
+        subDomains[i],
+        zone.name,
+        config.get('clearOldDns') ? i : getNextPriority()
       )
     )
   }
@@ -65,7 +53,11 @@ for (const domain of config.get('domains')) {
   await uploadNewDnsRecords(zone, cfDnsRecords.join('\n'))
   await generateConfigFile(zone)
 
-  log.info(`[${domain}] waiting for 5s to avoid rate limiting`)
-  await new Promise((resolve) => setTimeout(resolve, 5000))
-  log.info(`[${domain}] done`)
+  if (i !== zones.length - 1) {
+    log.info(`[${zone.name}] waiting for 5s to avoid rate limiting`)
+    await sleep(5)
+  }
+  log.info(`[${zone.name}] done`)
 }
+
+await saveApiCallHistory()

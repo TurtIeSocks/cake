@@ -2,3 +2,5 @@ node_modules/
 data/*
 !data/.keep
 config/local.json
+src/.cache/*
+!src/.cache/.keep
