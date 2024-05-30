@@ -1,0 +1,22 @@
+{
+  "name": "domains",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node ."
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "cloudflare": "^3.2.0",
+    "config": "^3.3.11",
+    "loglevel": "^1.9.1",
+    "random-words": "^2.0.1"
+  },
+  "devDependencies": {
+    "@types/config": "^3.3.4"
+  }
+}
