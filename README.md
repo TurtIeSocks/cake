@@ -2,7 +2,7 @@
 
 A very simple Cloudflare subdomain generator. Use responsibly, CloudFlare will put you in timeout if you abuse this too much. You can make 1,200 API calls per 5 minutes, this app will attempt to manually wait if you make too many.
 
-This uses the `random-words` package to generate subdomains that you use everyday words. It will also generate a yml config file saved to the `data` folder that can be used with other apps.
+This uses the `random-words` package to generate subdomains that use everyday words. It will also generate a yml config file saved to the `data` folder that can be used with other apps.
 
 ## Requirements
 
