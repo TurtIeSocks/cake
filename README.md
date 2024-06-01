@@ -64,3 +64,9 @@ This will only clear all subdomains for each of the domains in the `domains` arr
 - `subDomainCount` = `0`
 
 This will only generate a yml config file for the existing subdomains.
+
+### Updating IPs and Proxy Status
+
+- `yarn update`
+
+This will update the endpoint IP for all of the A records using the IP from the config. It will also set the proxy status to `true`.

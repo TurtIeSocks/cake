@@ -12,7 +12,7 @@ const CHUNK_SIZE = 50
 const API_CALL_LIMIT = 1200
 const DEST = path.join(
   path.dirname(new URL(import.meta.url).pathname),
-  './.cache/history.json'
+  '../.cache/history.json'
 )
 
 /** @type {number[]} */
@@ -105,27 +105,6 @@ export const clearDnsRecords = async (zone, records) => {
           cloudflare.dns.records.delete(record.id, { zone_id: zone.id })
       )
     )
-    for (let i = 0; i < records.length; i += CHUNK_SIZE) {
-      log.info(
-        `[${zone.name}] deleting chunk ${i} - ${i + CHUNK_SIZE} of DNS records`
-      )
-      const chunk = records.slice(i, i + CHUNK_SIZE)
-
-      await Promise.allSettled(
-        chunk.map(
-          (record) =>
-            record.id &&
-            cloudflare.dns.records.delete(record.id, { zone_id: zone.id })
-        )
-      )
-
-      if (i + CHUNK_SIZE < records.length) {
-        log.info(
-          `[${zone.name}] waiting for 1 second before deleting the next chunk of DNS records`
-        )
-        await sleep(1) // Wait for 1 second before processing the next chunk
-      }
-    }
     return null
   } catch (e) {
     log.error(`[${zone.name}]`, e)
@@ -185,6 +164,9 @@ export const getNextPriority = () => {
   return nextPriority
 }
 
+/**
+ * Loads the API call history from disk
+ */
 export const loadApiCallHistory = async () => {
   try {
     if (fs.existsSync(DEST)) {
@@ -207,6 +189,9 @@ export const loadApiCallHistory = async () => {
   }
 }
 
+/**
+ * Saves the API call history to disk
+ */
 export const saveApiCallHistory = async () => {
   try {
     await fs.promises.writeFile(DEST, JSON.stringify(callHistory), 'utf-8')
@@ -214,4 +199,27 @@ export const saveApiCallHistory = async () => {
   } catch (e) {
     log.error(e)
   }
+}
+
+/**
+ * Updates the IP address for all A records in a given zone/domain and sets proxied to true
+ * @param {import('cloudflare/resources/zones/zones.mjs').Zone} zone
+ */
+export const updateDnsRecordIp = async (zone) => {
+  const records = await getDnsRecords(zone, 'A')
+  const ip = config.get('dnsIpv4Address') || ''
+  await Promise.allSettled(
+    records.map(async (record) => {
+      if (record.id && record.type === 'A') {
+        await cloudflare.dns.records.update(record.id, {
+          zone_id: zone.id,
+          type: record.type,
+          name: record.name,
+          content: ip,
+          ttl: record.ttl,
+          proxied: true,
+        })
+      }
+    })
+  )
 }

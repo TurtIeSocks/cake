@@ -5,7 +5,7 @@ import { getDnsRecords } from './cf.js'
 
 const DEST = path.join(
   path.dirname(new URL(import.meta.url).pathname),
-  '../',
+  '../../',
   'data'
 )
 

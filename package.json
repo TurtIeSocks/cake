@@ -5,7 +5,9 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "start": "node ."
+    "start": "yarn generate",
+    "generate": "node . generate",
+    "update": "node . update"
   },
   "author": "",
   "license": "MIT",
