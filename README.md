@@ -37,6 +37,10 @@ The IP address that you want your subdomains to point to.
 
 The number of subdomains to generate.
 
+### `emailRoutingForwardAddress`
+
+The email address to set in the email routing forward all rule
+
 ### `clearOldDns`
 
 Whether to clear old subdomains before generating new ones. (Recommended, but only if the domains are not being used for other purposes)

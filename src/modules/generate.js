@@ -6,8 +6,8 @@ import {
   aTemplate,
   clearDnsRecords,
   getDnsRecords,
-  getDomains,
   getNextPriority,
+  mapDomains,
   mxTemplate,
   uploadNewDnsRecords,
 } from '../services/cf.js'
@@ -15,10 +15,7 @@ import { getUniqueSubdomains, sleep } from '../services/util.js'
 import { generateConfigFile } from '../services/writers.js'
 
 export async function generate() {
-  const zones = await getDomains()
-
-  for (let i = 0; i < zones.length; i++) {
-    const zone = zones[i]
+  await mapDomains(async (zone, i, zones) => {
     log.info(`[${zone.name}] starting`)
     const dns = await getDnsRecords(zone)
     if (config.get('clearOldDns')) {
@@ -54,5 +51,5 @@ export async function generate() {
       await sleep(5)
     }
     log.info(`[${zone.name}] done`)
-  }
+  })
 }

@@ -8,7 +8,6 @@ import path from 'path'
 
 import { sleep } from './util.js'
 
-const CHUNK_SIZE = 50
 const API_CALL_LIMIT = 1200
 const DEST = path.join(
   path.dirname(new URL(import.meta.url).pathname),
@@ -56,6 +55,25 @@ export const getDomains = async () => {
     log.error('[startup]', e)
     return []
   }
+}
+
+/**
+ * Maps over all domains and runs a callback
+ * @param {(zone: import('cloudflare/resources/zones/zones.mjs').Zone, i: number, array: import('cloudflare/resources/zones/zones.mjs').Zone[]) => Promise<void>} cb
+ * @returns {Promise<void>}
+ * @example await mapDomains(async (zone, i, array) => {
+ *  console.log(zone.name)
+ * })
+ */
+export const mapDomains = async (cb) => {
+  const zones = await getDomains()
+  await Promise.allSettled(
+    zones.map(async (zone, i, array) => {
+      log.info(`[${zone.name}] starting`)
+      await cb(zone, i, array)
+      log.info(`[${zone.name}] done`)
+    })
+  )
 }
 
 /**
@@ -225,32 +243,115 @@ export const updateDnsRecordIp = async (zone) => {
 }
 
 /**
+ * Disables Cloudflare email routing for a given zone/domain
  * @param {import('cloudflare/resources/zones/zones.mjs').Zone} zone
  */
-export const addCfEmailRecords = async (zone) => {
-  await cloudflare.dns.records.create({
-    content: `"v=spf1 include:_spf.mx.cloudflare.net ~all"`,
-    name: '*',
-    type: 'TXT',
-    zone_id: zone.id,
-  })
-  await cloudflare.dns.records.create({
-    content: zone.name,
-    name: '*',
-    type: 'MX',
-    priority: 5,
-    zone_id: zone.id,
-  })
-  const records = await getDnsRecords(zone, 'MX')
-  for (let i = 1; i <= 3; i++) {
-    const pre = `route${i}`
-    const existing = records.find((r) => typeof r.content === 'string' && r.content?.startsWith(pre))
-    await cloudflare.dns.records.create({
-      content: `${pre}.mx.cloudflare.net`,
-      name: '*',
-      type: 'MX',
-      priority: existing?.type === 'MX' ? existing.priority : i,
-      zone_id: zone.id,
-    })
+export const disableEmailRouting = async (zone) => {
+  try {
+    log.info(`[${zone.name}] disabling Cloudflare email records`)
+    const settings = await cloudflare.emailRouting.get(zone.id)
+    if (settings.enabled) {
+      await cloudflare.emailRouting.disable(zone.id, undefined)
+    }
+    const mxRecords = await getDnsRecords(zone, 'MX')
+    await clearDnsRecords(zone, mxRecords)
+    const txtRecords = await getDnsRecords(zone, 'TXT')
+    await clearDnsRecords(zone, txtRecords)
+
+    log.info(`[${zone.name}] done`)
+  } catch (e) {
+    log.error(`[${zone.name}]`, e)
   }
+}
+
+/**
+ * Enables Cloudflare email routing for a given zone/domain
+ * @param {import('cloudflare/resources/zones/zones.mjs').Zone} zone
+ */
+export const enableEmailRouting = async (zone) => {
+  log.info(`[${zone.name}] enabling Cloudflare email records`)
+  let result
+  try {
+    result = await cloudflare.emailRouting.enable(zone.id, undefined)
+  } catch (e) {
+    log.error(`[${zone.name}]`, e)
+  }
+  try {
+    await cloudflare.emailRouting.rules.catchAlls.update(zone.id, {
+      enabled: true,
+      actions: [
+        { type: 'forward', value: [config.get('emailRoutingForwardAddress')] },
+      ],
+      matchers: [{ type: 'all' }],
+    })
+    log.info(`[${zone.name}] done`)
+  } catch (e) {
+    log.error(`[${zone.name}]`, e)
+  }
+  return result
+}
+
+/**
+ * Adds Cloudflare email records to a given zone/domain
+ * @param {import('cloudflare/resources/zones/zones.mjs').Zone} zone
+ */
+export const resetEmailRouting = async (zone) => {
+  log.warn(
+    `[${zone.name}] resetting Cloudflare email records, this will delete all existing MX records, pausing for 5s if you want to change your mind`
+  )
+  await sleep(5)
+
+  await disableEmailRouting(zone)
+  const result = await enableEmailRouting(zone)
+
+  if (result?.created) {
+    log.info(`[${zone.name}] creating additional mx and txt records`)
+    const recordsToCreate = [
+      cloudflare.dns.records.create({
+        content: `"v=spf1 include:_spf.mx.cloudflare.net ~all"`,
+        name: '*',
+        type: 'TXT',
+        zone_id: zone.id,
+      }),
+      cloudflare.dns.records.create({
+        content: zone.name,
+        name: '*',
+        type: 'MX',
+        priority: 5,
+        zone_id: zone.id,
+      }),
+      cloudflare.dns.records.create({
+        content:
+          'v=DMARC1;  p=none; rua=mailto:6e857e99eba7472b85842fc54d302d3c@dmarc-reports.cloudflare.net',
+        name: '_dmarc',
+        type: 'TXT',
+        zone_id: zone.id,
+      }),
+    ]
+
+    const records = await getDnsRecords(zone, 'MX')
+
+    for (let i = 1; i <= 3; i++) {
+      const pre = `route${i}`
+      const existing = records.find(
+        (r) => typeof r.content === 'string' && r.content?.startsWith(pre)
+      )
+      if (existing) {
+        recordsToCreate.push(
+          cloudflare.dns.records.create({
+            content: `${pre}.mx.cloudflare.net`,
+            name: '*',
+            type: 'MX',
+            priority: existing?.type === 'MX' ? existing.priority : i,
+            zone_id: zone.id,
+          })
+        )
+      }
+    }
+
+    await Promise.allSettled(recordsToCreate)
+    log.info(`[${zone.name}] done`)
+    return
+  }
+  log.error(`[${zone.name}] failed to create email records`)
 }

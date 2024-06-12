@@ -3,6 +3,7 @@
   "dnsIpv4Address": "",
   "clearOldDns": false,
   "subdomainCount": 100,
+  "emailRoutingForwardAddress": "",
   "domains": [],
   "logLevel": "info"
 }
