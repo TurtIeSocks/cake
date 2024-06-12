@@ -80,3 +80,7 @@ This will update the endpoint IP for all of the A records using the IP from the 
 - `yarn mailer`
 
 This will create CF mail records.
+
+Needs more permissions than the above though:
+
+<img src="./static/api-perms.png" width="500">
