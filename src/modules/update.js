@@ -1,16 +1,9 @@
 // @ts-check
 import log from 'loglevel'
 
-import '../services/logger.js'
-import {
-  getDomains,
-  saveApiCallHistory,
-  loadApiCallHistory,
-  updateDnsRecordIp,
-} from '../services/cf.js'
+import { getDomains, updateDnsRecordIp } from '../services/cf.js'
 
 export async function update() {
-  await loadApiCallHistory()
   const zones = await getDomains()
 
   for (let i = 0; i < zones.length; i++) {
@@ -19,6 +12,4 @@ export async function update() {
     await updateDnsRecordIp(zone)
     log.info(`[${zone.name}] done`)
   }
-
-  await saveApiCallHistory()
 }

@@ -2,7 +2,6 @@
 import config from 'config'
 import log from 'loglevel'
 
-import '../services/logger.js'
 import {
   aTemplate,
   clearDnsRecords,
@@ -10,15 +9,12 @@ import {
   getDomains,
   getNextPriority,
   mxTemplate,
-  saveApiCallHistory,
-  loadApiCallHistory,
   uploadNewDnsRecords,
 } from '../services/cf.js'
 import { getUniqueSubdomains, sleep } from '../services/util.js'
 import { generateConfigFile } from '../services/writers.js'
 
 export async function generate() {
-  await loadApiCallHistory()
   const zones = await getDomains()
 
   for (let i = 0; i < zones.length; i++) {
@@ -59,6 +55,4 @@ export async function generate() {
     }
     log.info(`[${zone.name}] done`)
   }
-
-  await saveApiCallHistory()
 }
