@@ -223,3 +223,34 @@ export const updateDnsRecordIp = async (zone) => {
     })
   )
 }
+
+/**
+ * @param {import('cloudflare/resources/zones/zones.mjs').Zone} zone
+ */
+export const addCfEmailRecords = async (zone) => {
+  await cloudflare.dns.records.create({
+    content: `"v=spf1 include:_spf.mx.cloudflare.net ~all"`,
+    name: '*',
+    type: 'TXT',
+    zone_id: zone.id,
+  })
+  await cloudflare.dns.records.create({
+    content: zone.name,
+    name: '*',
+    type: 'MX',
+    priority: 5,
+    zone_id: zone.id,
+  })
+  const records = await getDnsRecords(zone, 'MX')
+  for (let i = 1; i <= 3; i++) {
+    const pre = `route${i}`
+    const existing = records.find((r) => typeof r.content === 'string' && r.content?.startsWith(pre))
+    await cloudflare.dns.records.create({
+      content: `${pre}.mx.cloudflare.net`,
+      name: '*',
+      type: 'MX',
+      priority: existing?.type === 'MX' ? existing.priority : i,
+      zone_id: zone.id,
+    })
+  }
+}

@@ -70,3 +70,9 @@ This will only generate a yml config file for the existing subdomains.
 - `yarn update`
 
 This will update the endpoint IP for all of the A records using the IP from the config. It will also set the proxy status to `true`.
+
+### Add CF Mail
+
+- `yarn mailer`
+
+This will create CF mail records.
