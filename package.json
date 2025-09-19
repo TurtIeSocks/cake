@@ -5,10 +5,11 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "start": "yarn generate",
-    "generate": "node . generate",
-    "update": "node . update",
-    "mailer": "node . mailer"
+    "start": "bun generate",
+    "generate": "bun . generate",
+    "update": "bun . update",
+    "mailer": "bun . mailer",
+    "disable-mailer": "bun . disable-mailer"
   },
   "author": "",
   "license": "MIT",
